@@ -91,7 +91,8 @@ QtObject {
                 icon: "material:translate",
                 comment: "Default target: " + defaultLang + " | Prefix a language code to override (e.g. pt hello)",
                 action: "none:",
-                categories: ["Translate"]
+                categories: ["Translate"],
+                _preScored: 1000
             }];
         }
 
@@ -103,7 +104,8 @@ QtObject {
                 icon: "material:translate",
                 comment: "Translating to: " + parsed.lang,
                 action: "none:",
-                categories: ["Translate"]
+                categories: ["Translate"],
+                _preScored: 1000
             }];
         }
 
@@ -123,7 +125,8 @@ QtObject {
                 icon: "material:error_outline",
                 comment: parsed.text + " -> " + parsed.lang,
                 action: "none:",
-                categories: ["Translate"]
+                categories: ["Translate"],
+                _preScored: 1000
             }];
         }
 
@@ -133,7 +136,8 @@ QtObject {
                 icon: "material:hourglass_empty",
                 comment: parsed.text + " -> " + parsed.lang,
                 action: "none:",
-                categories: ["Translate"]
+                categories: ["Translate"],
+                _preScored: 1000
             }];
         }
 
@@ -145,7 +149,8 @@ QtObject {
                 icon: "material:translate",
                 comment: parsed.text + " -> " + parsed.lang,
                 action: "copy:" + line,
-                categories: ["Translate"]
+                categories: ["Translate"],
+                _preScored: 1000
             };
         });
     }
