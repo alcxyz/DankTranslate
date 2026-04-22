@@ -13,6 +13,7 @@ QtObject {
     property string _lastQuery: ""
     property string _lastResult: ""
     property bool _translating: false
+    property bool _error: false
 
     signal itemsChanged
 
@@ -52,7 +53,10 @@ QtObject {
     }
 
     function startTranslation(text, lang) {
+        if (transProcess.running)
+            transProcess.running = false;
         _translating = true;
+        _error = false;
         transProcess.command = ["trans", "-brief", "-t", lang, text];
         transProcess.running = true;
     }
@@ -64,7 +68,8 @@ QtObject {
             onStreamFinished: {
                 root._translating = false;
                 root._lastResult = text.trim();
-                root.itemsChanged();
+                if (root.pluginService)
+                    root.pluginService.requestLauncherUpdate(root.pluginId);
             }
         }
 
@@ -72,7 +77,9 @@ QtObject {
             if (exitCode !== 0) {
                 root._translating = false;
                 root._lastResult = "";
-                root.itemsChanged();
+                root._error = true;
+                if (root.pluginService)
+                    root.pluginService.requestLauncherUpdate(root.pluginId);
             }
         }
     }
@@ -104,9 +111,20 @@ QtObject {
         if (queryKey !== _lastQuery) {
             _lastQuery = queryKey;
             _lastResult = "";
+            _error = false;
             _pendingQuery = parsed.text;
             _pendingLang = parsed.lang;
             debounceTimer.restart();
+        }
+
+        if (_error) {
+            return [{
+                name: "Translation failed",
+                icon: "material:error_outline",
+                comment: parsed.text + " -> " + parsed.lang,
+                action: "none:",
+                categories: ["Translate"]
+            }];
         }
 
         if (_translating || !_lastResult) {
