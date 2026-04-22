@@ -2,7 +2,7 @@
     "id": "dankTranslate",
     "name": "Translate",
     "description": "Translate text between languages using translate-shell",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "author": "alcxyz",
     "icon": "translate",
     "type": "launcher",
