@@ -32,14 +32,14 @@ assert not missing, f'missing fields: {missing}'
 " && pass "all required fields present" \
   || fail "plugin.json" "missing required fields"
 
-# ── VERSION format ──────────────────────────────────────────────────
+# ── version format ──────────────────────────────────────────────────
 
-echo "VERSION"
-VERSION=$(cat VERSION | tr -d '[:space:]')
+echo "version (plugin.json)"
+VERSION=$(jq -r .version plugin.json)
 if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
     pass "semver format ($VERSION)"
 else
-    fail "VERSION" "'$VERSION' is not valid semver"
+    fail "plugin.json version" "'$VERSION' is not valid semver"
 fi
 
 # ── QML file references ─────────────────────────────────────────────
