@@ -25,7 +25,7 @@ inputs.dms-plugin-translate = {
 ```
 
 ```nix
-programs.dank-material-shell.plugins.DankTranslate = {
+programs.dank-material-shell.plugins.dankTranslate = {
   enable = true;
   src = inputs.dms-plugin-translate;
 };
