@@ -12,8 +12,12 @@ QtObject {
     property string defaultLang: "en"
     property string _lastQuery: ""
     property string _lastResult: ""
+    property string _lastError: ""
+    property string _stdoutBuffer: ""
+    property string _stderrBuffer: ""
     property bool _translating: false
     property bool _error: false
+    property bool _timedOut: false
 
     signal itemsChanged
 
@@ -35,6 +39,17 @@ QtObject {
     property string _pendingQuery: ""
     property string _pendingLang: ""
 
+    property Timer translationTimeout: Timer {
+        interval: 15000
+        repeat: false
+        onTriggered: {
+            root._timedOut = true;
+            if (transProcess.running)
+                transProcess.running = false;
+            root.finishTranslation("", "Translation timed out");
+        }
+    }
+
     function parseQuery(raw) {
         var trimmed = raw.trim();
         if (trimmed.length === 0)
@@ -55,10 +70,25 @@ QtObject {
     function startTranslation(text, lang) {
         if (transProcess.running)
             transProcess.running = false;
+        _stdoutBuffer = "";
+        _stderrBuffer = "";
+        _timedOut = false;
         _translating = true;
         _error = false;
-        transProcess.command = ["trans", "-brief", "-t", lang, text];
+        _lastError = "";
+        transProcess.command = ["sh", "-c", "command -v trans >/dev/null 2>&1 || exit 127; exec trans -brief -t \"$1\" \"$2\"", "sh", lang, text];
         transProcess.running = true;
+        translationTimeout.restart();
+    }
+
+    function finishTranslation(result, errorText) {
+        translationTimeout.stop();
+        _translating = false;
+        _lastResult = result ? result.trim() : "";
+        _lastError = errorText || "";
+        _error = _lastError.length > 0;
+        if (pluginService)
+            pluginService.requestLauncherUpdate(pluginId);
     }
 
     property Process transProcess: Process {
@@ -66,20 +96,29 @@ QtObject {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                root._translating = false;
-                root._lastResult = text.trim();
-                if (root.pluginService)
-                    root.pluginService.requestLauncherUpdate(root.pluginId);
+                root._stdoutBuffer = text.trim();
+            }
+        }
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                root._stderrBuffer = text.trim();
             }
         }
 
         onExited: exitCode => {
-            if (exitCode !== 0) {
-                root._translating = false;
-                root._lastResult = "";
-                root._error = true;
-                if (root.pluginService)
-                    root.pluginService.requestLauncherUpdate(root.pluginId);
+            if (root._timedOut)
+                return;
+
+            if (exitCode === 0) {
+                if (root._stdoutBuffer.length > 0)
+                    root.finishTranslation(root._stdoutBuffer, "");
+                else
+                    root.finishTranslation("", "No translation returned");
+            } else if (exitCode === 127) {
+                root.finishTranslation("", "translate-shell (trans) is not installed");
+            } else {
+                root.finishTranslation("", root._stderrBuffer || "Translation failed");
             }
         }
     }
@@ -114,6 +153,7 @@ QtObject {
             _lastQuery = queryKey;
             _lastResult = "";
             _error = false;
+            _lastError = "";
             _pendingQuery = parsed.text;
             _pendingLang = parsed.lang;
             debounceTimer.restart();
@@ -123,7 +163,7 @@ QtObject {
             return [{
                 name: "Translation failed",
                 icon: "material:error_outline",
-                comment: parsed.text + " -> " + parsed.lang,
+                comment: _lastError || (parsed.text + " -> " + parsed.lang),
                 action: "none:",
                 categories: ["Translate"],
                 _preScored: 1000

@@ -4,8 +4,8 @@ set -euo pipefail
 PASS=0
 FAIL=0
 
-pass() { ((PASS++)); echo "  PASS: $1"; }
-fail() { ((FAIL++)); echo "  FAIL: $1 — $2"; }
+pass() { ((PASS+=1)); echo "  PASS: $1"; }
+fail() { ((FAIL+=1)); echo "  FAIL: $1 — $2"; }
 
 assert_eq() {
     local desc="$1" expected="$2" actual="$3"
@@ -118,12 +118,40 @@ assert_eq "4-char word not a lang code" "en" "$(parse_lang 'test something')"
 
 echo "trans command"
 
-# Verify the command structure matches: trans -brief -t <lang> <text>
-CMD="trans -brief -t pt hello world"
-assert_eq "command starts with trans" "trans" "$(echo "$CMD" | awk '{print $1}')"
-assert_eq "uses -brief flag" "-brief" "$(echo "$CMD" | awk '{print $2}')"
-assert_eq "uses -t flag" "-t" "$(echo "$CMD" | awk '{print $3}')"
-assert_eq "target language" "pt" "$(echo "$CMD" | awk '{print $4}')"
+# Verify the plugin checks for translate-shell before executing it.
+if grep -qF 'command -v trans' DankTranslate.qml && grep -qF 'exec trans -brief -t' DankTranslate.qml; then
+    pass "checks and executes trans through shell wrapper"
+else
+    fail "trans command" "missing trans preflight or exec command"
+fi
+
+if grep -qF 'translate-shell (trans) is not installed' DankTranslate.qml; then
+    pass "missing trans reports a specific error"
+else
+    fail "trans command" "missing dependency error message"
+fi
+
+# ── process completion handling ──────────────────────────────────────
+
+echo "process completion"
+
+if grep -qF 'property Timer translationTimeout' DankTranslate.qml && grep -qF 'Translation timed out' DankTranslate.qml; then
+    pass "translation timeout is defined"
+else
+    fail "process completion" "missing timeout handling"
+fi
+
+if grep -qF 'stderr: StdioCollector' DankTranslate.qml && grep -qF '_stderrBuffer' DankTranslate.qml; then
+    pass "stderr is captured for failures"
+else
+    fail "process completion" "stderr is not captured"
+fi
+
+if grep -qF 'No translation returned' DankTranslate.qml; then
+    pass "empty successful output becomes an error"
+else
+    fail "process completion" "empty output can still look pending"
+fi
 
 # ── multi-line result parsing ────────────────────────────────────────
 
