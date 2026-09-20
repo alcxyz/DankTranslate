@@ -3,3 +3,4 @@
 | ADR | Title | Area |
 |---|---|---|
 | [ADR-001](ADR-001-prescored-bypass-for-plugin-items.md) | Use _preScored to Bypass DMS Scorer for Plugin Items | DMS integration |
+| [ADR-002](ADR-002-packaged-build-identity.md) | Packaged build identity | packaging |

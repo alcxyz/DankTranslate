@@ -182,6 +182,10 @@ else
     fail "clipboard" "does not use safe positional arg pattern"
 fi
 
+# ── packaged build identity ─────────────────────────────────────────
+
+python3 -m unittest discover -s tests -p 'test_*.py'
+
 # ── summary ──────────────────────────────────────────────────────────
 
 echo ""
